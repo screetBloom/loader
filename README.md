@@ -31,7 +31,7 @@ module.exports = function (src) {
 yarn install  markdown-it markdown-it-anchor markdown-it-container markdown-it-emoji markdown-it-table-of-contents
 ```
 包名称|功能说明
-----|----
+---|---
 markdown-it	| 渲染 markdown 基本语法
 markdown-it-anchor |	为各级标题添加锚点
 markdown-it-container |	用于创建自定义的块级容器
