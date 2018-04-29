@@ -213,7 +213,7 @@ export default {
 }
 </script>
 ```
-**vue-loader就会将该以components形式引入的md后缀的文件当成当前的子组件的组件来渲染展示**
+**vue-loader就会将以components形式引入的该md后缀的文件当成当前的子组件的组件来渲染展示**
 
 结尾
 ---
