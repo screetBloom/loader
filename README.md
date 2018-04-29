@@ -1,5 +1,5 @@
 # loader
-尝试去实现一个任意后缀的loader ，这里是一个markdown的loader  
+尝试去实现一个任意后缀的loader ，先尝试一个markdown的loader  
 
 关于 webpack loader
 ---
@@ -10,7 +10,7 @@
     
 由此可见，loader 就像是一个“处理器”，输入特定的内容，处理后进行输出。当必要时，可以把一些合适的 loader 串起来使用，使前一个 loader 的输出变成后一个 loader 的输入，最终得到自己想要的结果。
 <br>
-对于本文要提到的 markdown-loader 来说，它需要进行的处理就是，将 markdown 文件内容解析并包装成一个与 vue 单文件组件内容相似的，然后传给它后面的 vue-loader, 所以一个最简单的 vue markdown-loader 可以长这德性：
+对于 markdown-loader 来说，它需要进行的处理就是：将 markdown 文件内容解析并包装成一个与 vue 单文件组件内容相似的，然后传给它后面的 vue-loader, 所以一个最简单的 vue markdown-loader 如下：
 ```js
 module.exports = function (src) {
   const res = (
