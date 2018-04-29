@@ -162,12 +162,12 @@ function createContainer (klass, defaultTitle) {
     },
     {
       // 这里用到的就是刚写的那个 loader
-      loader: require.resolve('./markdownLoader')
+      loader: require.resolve('./mloader')
     }
   ]
 },
 ```
-然后，就可以在自己的组件中引入 markdown 文件了。假如你有一个名叫 something-cool.md 的文件里有下面这样的内容:
+然后，就可以在自己的组件中引入 markdown 文件了。假如你有一个名叫 test.md 的文件里有下面这样的内容:
 ```bash
 # hello world
 
@@ -208,7 +208,7 @@ test  test :cry:
 <script>
 export default {
   components: {
-    'my-markdown': () => import('./something-cool.ms')
+    'my-markdown': () => import('./test.md')
   }
 }
 </script>
