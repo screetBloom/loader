@@ -39,6 +39,182 @@ markdown-it-emoji |	渲染 emoji
 markdown-it-table-of-contents  | 自动生成目录
 highlight.js  |	代码高亮
 
+编写 loader
+---
+在这个 loader 里，传入的是 markdown 文件的源文件，也就是没作任何解析的内容，我们需要对它进行一些处理，包括解析基本语法、渲染 emoji、添加锚点等处理，并定义一些自定义的块，比较关键的就是，最后要把这些内容包裹到 <template> 标签中，不然接下来处理它们的 vue-loader 处理不了。
+<br>
+贴上 loader 的代码
+```js
+const fs = require('fs')
+const path = require('path')
+const hash = require('hash-sum')
+const LRU = require('lru-cache')
+const hljs = require('highlight.js')
 
+// markdown-it 插件
+const emoji = require('markdown-it-emoji')
+const anchor = require('markdown-it-anchor')
+const toc = require('markdown-it-table-of-contents')
+
+// 自定义块
+const containers = require('./containers')
+
+const md = require('markdown-it')({
+  html: true,
+  // 代码高亮
+  highlight: function (str, lang) {
+    if (lang && hljs.getLanguage(lang)) {
+      try {
+        return '<pre class="hljs"><code>' +
+          hljs.highlight(lang, str, true).value +
+          '</code></pre>'
+      } catch (__) {}
+    }
+
+    return '<pre v-pre class="hljs"><code>' + md.utils.escapeHtml(str) + '</code></pre>'
+  }
+})
+  // 使用 emoji 插件渲染 emoji
+  .use(emoji)
+  // 使用 anchor 插件为标题元素添加锚点
+  .use(anchor, {
+    permalink: true,
+    permalinkBefore: true,
+    permalinkSymbol: '#'
+  })
+  // 使用 table-of-contents 插件实现自动生成目录
+  .use(toc, {
+    includeLevel: [2, 3]
+  })
+  // 定义自定义的块容器
+  .use(containers)
+
+const cache = LRU({ max: 1000 })
+
+module.exports = function (src) {
+  const isProd = process.env.NODE_ENV === 'production'
+
+  const file = this.resourcePath
+  const key = hash(file + src)
+  const cached = cache.get(key)
+
+  // 重新模式下构建时使用缓存以提高性能
+  if (cached && (isProd || /\?vue/.test(this.resourceQuery))) {
+    return cached
+  }
+
+  const html = md.render(src)
+
+  const res = (
+    `<template>\n` +
+    `<div class="content">${html}</div>\n` +
+    `</template>\n`
+  )
+  cache.set(key, res)
+  return res
+}
+```
+**containers.js 中代码**
+```js
+const container = require('markdown-it-container')
+
+module.exports = md => {
+  md
+    .use(...createContainer('tip', 'TIP'))
+    .use(...createContainer('warning', 'WARNING'))
+    .use(...createContainer('danger', 'WARNING'))
+    // explicitly escape Vue syntax
+    .use(container, 'v-pre', {
+      render: (tokens, idx) => tokens[idx].nesting === 1
+        ? `<div v-pre>\n`
+        : `</div>\n`
+    })
+}
+
+function createContainer (klass, defaultTitle) {
+  return [container, klass, {
+    render (tokens, idx) {
+      const token = tokens[idx]
+      const info = token.info.trim().slice(klass.length).trim()
+      if (token.nesting === 1) {
+        return `<div class="${klass} custom-block"><p class="custom-block-title">${info || defaultTitle}</p>\n`
+      } else {
+        return `</div>\n`
+      }
+    }
+  }]
+}
+```
+尝试使用
+---
+写好了 loader，就可以在 webpack 里使用了，在配置的 module.rules 数组中加入如下规则：
+```bash
+{
+  test: /\.md$/,
+  use: [
+    {
+      loader: 'vue-loader', // 这里的使用的最新的 v15 版本
+      options: {
+        compilerOptions: {
+          preserveWhitespace: false
+        }
+      }
+    },
+    {
+      // 这里用到的就是刚写的那个 loader
+      loader: require.resolve('./markdownLoader')
+    }
+  ]
+},
+```
+然后，就可以在自己的组件中引入 markdown 文件了。假如你有一个名叫 something-cool.md 的文件里有下面这样的内容:
+```bash
+# hello world
+
+[[toc]]
+
+## 二级标题1
+
+test test :+1:
+
+## 二级标题2
+
+test  test :cry:
+
+## 二级标题3
+
+### 三级标题1
+333333333333333
+
+### 三级标题2
+444444444444
+
+
+:::tip
+友情提示
+:::
+
+:::danger
+页面崩溃……
+:::
+
+```
+在 vue 项目中使用：
+```bash
+<template>
+  <my-markdown/>
+</template>
+
+<script>
+export default {
+  components: {
+    'my-markdown': () => import('./something-cool.ms')
+  }
+}
+</script>
+```
+结尾
+---
+可以看到，了解其中原理之后，实现一个简单的loader还是可能的；我们的目标是可以创建自创格式的文件和扩展名，然后写个 loader 处理/加载这类文件
 
 
